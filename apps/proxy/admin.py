@@ -9,11 +9,19 @@ from apps.sspanel.models import User
 class SSConfigInline(admin.StackedInline):
     model = models.SSConfig
     verbose_name = "SS配置"
+    extra = 0
     fields = [
         "proxy_node",
         "method",
         "multi_user_port",
     ]
+
+
+class RayConfigInline(admin.StackedInline):
+    model = models.RayConfig
+    fields = ["proxy_node", "ray_tool", "config"]
+    extra = 0
+    verbose_name = "Ray配置"
 
 
 class RelayRuleInline(admin.TabularInline):
@@ -50,6 +58,12 @@ class ProxyNodeAdminForm(ModelForm):
         total_traffic = self.cleaned_data.get("total_traffic")
         return total_traffic * settings.GB
 
+    class Media:
+        js = (
+            "https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js",
+            "js/addProxy.js",
+        )
+
 
 class ProxyNodeAdmin(admin.ModelAdmin):
     form = ProxyNodeAdminForm
@@ -64,7 +78,7 @@ class ProxyNodeAdmin(admin.ModelAdmin):
         "sequence",
     ]
     inlines = [RelayRuleInline]
-    all_inlines = [SSConfigInline, RelayRuleInline]
+    all_inlines = [SSConfigInline, RayConfigInline, RelayRuleInline]
     list_editable = ["sequence"]
 
     def get_inlines(self, request, instance):
@@ -72,6 +86,8 @@ class ProxyNodeAdmin(admin.ModelAdmin):
             return self.all_inlines
         elif instance.node_type == models.ProxyNode.NODE_TYPE_SS:
             return [SSConfigInline] + self.inlines
+        elif instance.node_type == models.ProxyNode.NODE_TYPE_RAY:
+            return [RayConfigInline] + self.inlines
         return self.inlines
 
     def traffic(self, instance):
@@ -86,7 +102,6 @@ class ProxyNodeAdmin(admin.ModelAdmin):
 
 
 class RelayNodeAdmin(admin.ModelAdmin):
-
     list_display = [
         "name",
         "isp",
@@ -118,22 +133,13 @@ class RelayRuleAdmin(admin.ModelAdmin):
     inlines = []
 
 
-class NodeOnlineLogAdmin(admin.ModelAdmin):
-    list_display = [
-        "proxy_node",
-        "online_user_count",
-        "tcp_connections_count",
-        "created_at",
-    ]
-    list_filter = ["proxy_node"]
-    list_select_related = ["proxy_node"]
-
-
 class UserTrafficLogAdmin(admin.ModelAdmin):
     list_display = [
         "username",
         "nodename",
         "total_traffic",
+        "tcp_conn_cnt",
+        "ip_list",
         "created_at",
     ]
     search_fields = ["user__username"]
@@ -155,23 +161,9 @@ class UserTrafficLogAdmin(admin.ModelAdmin):
     total_traffic.short_description = "流量"
 
 
-class UserOnLineIpLogAdmin(admin.ModelAdmin):
-    list_display = [
-        "user",
-        "proxy_node",
-        "ip",
-    ]
-    search_fields = ["ip"]
-    list_filter = ["user", "proxy_node"]
-    list_per_page = 10
-    show_full_result_count = False
-
-
 # Register your models here.
 admin.site.register(models.ProxyNode, ProxyNodeAdmin)
 admin.site.register(models.RelayNode, RelayNodeAdmin)
 admin.site.register(models.RelayRule, RelayRuleAdmin)
 
-admin.site.register(models.NodeOnlineLog, NodeOnlineLogAdmin)
 admin.site.register(models.UserTrafficLog, UserTrafficLogAdmin)
-admin.site.register(models.UserOnLineIpLog, UserOnLineIpLogAdmin)

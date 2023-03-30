@@ -9,6 +9,8 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.utils import timezone
 
+from apps import constants as c
+
 
 def get_random_string(
     length=12,
@@ -99,3 +101,7 @@ def get_client_ip(request):
         return x_forwarded_for.split(",")[0]
     else:
         return request.META.get("REMOTE_ADDR")
+
+
+def get_default_ray_config():
+    return c.DEFAULT_RAY_CONFIG

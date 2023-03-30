@@ -1,18 +1,19 @@
-name: tag
+name: ssr
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - ssr
 jobs:
-  build-tag-image:
+  build-runtime:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: build tag image
+
+      - name: build ssr image
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: ehco1996/django-sspanel
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          tag_names: true
-          dockerfile: Dockerfile.CODE
+          tags: "ssr"
+          dockerfile: Dockerfile

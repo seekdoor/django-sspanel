@@ -14,6 +14,7 @@ from apps import utils
 from apps.ext import cache
 from apps.mixin import BaseLogModel, BaseModel, SequenceMixin
 from apps.sspanel.models import User
+from apps.utils import get_default_ray_config
 
 
 class BaseNodeModel(BaseModel):
@@ -26,18 +27,16 @@ class BaseNodeModel(BaseModel):
 
     @property
     def multi_server_address(self):
+        # TODO 单节点支持多入口
         return self.server.split(",")
 
 
 class ProxyNode(BaseNodeModel, SequenceMixin):
-
     NODE_TYPE_SS = "ss"
-    NODE_TYPE_VLESS = "vless"
-    NODE_TYPE_TROJAN = "trojan"
+    NODE_TYPE_RAY = "ray"
     NODE_CHOICES = (
         (NODE_TYPE_SS, NODE_TYPE_SS),
-        (NODE_TYPE_VLESS, NODE_TYPE_VLESS),
-        (NODE_TYPE_TROJAN, NODE_TYPE_TROJAN),
+        (NODE_TYPE_RAY, NODE_TYPE_RAY),
     )
 
     node_type = models.CharField(
@@ -56,6 +55,7 @@ class ProxyNode(BaseNodeModel, SequenceMixin):
         decimal_places=1,
         max_digits=10,
     )
+    enable_direct = models.BooleanField("允许直连", default=True)
 
     ehco_listen_host = models.CharField("隧道监听地址", max_length=64, blank=True, null=True)
     ehco_listen_port = models.CharField("隧道监听端口", max_length=64, blank=True, null=True)
@@ -126,9 +126,59 @@ class ProxyNode(BaseNodeModel, SequenceMixin):
             )
         return configs
 
+    def get_ray_node_config(self):
+        configs = {
+            "configs": [],
+            "tag": self.ray_config.config["inbounds"][0]["tag"],
+            "grpc_endpoint": self.ray_config.config["inbounds"][1]["listen"]
+            + ":"
+            + self.ray_config.config["inbounds"][1]["port"],
+            "protocol": self.ray_config.config["inbounds"][0]["protocol"],
+            "rtsignal": False,
+            "ray_api_endpoint": self.ray_config.config,
+            "ray_tool": self.ray_config.ray_tool,
+        }
+        for user in User.objects.filter(level__gte=self.level).values(
+            "id",
+            "email",
+            "ss_password",
+            "level",
+            "vmess_uuid",
+            "total_traffic",
+            "upload_traffic",
+            "download_traffic",
+        ):
+            enable = self.enable and user["total_traffic"] > (
+                user["download_traffic"] + user["upload_traffic"]
+            )
+            if configs["protocol"] == "vmess":
+                configs["configs"].append(
+                    {
+                        "user_id": user["id"],
+                        "email": user["email"],
+                        "uuid": user["vmess_uuid"],
+                        "level": user["level"],
+                        "alter_id": 0,
+                        "enable": enable,
+                    }
+                )
+            else:
+                configs["configs"].append(
+                    {
+                        "user_id": user["id"],
+                        "email": user["email"],
+                        "password": user["ss_password"],
+                        "level": user["level"],
+                        "enable": enable,
+                    }
+                )
+        return configs
+
     def get_proxy_configs(self):
         if self.node_type == self.NODE_TYPE_SS:
             return self.get_ss_node_config()
+        elif self.node_type == self.NODE_TYPE_RAY:
+            return self.get_ray_node_config()
         return {}
 
     def get_ehco_server_config(self):
@@ -188,10 +238,11 @@ class ProxyNode(BaseNodeModel, SequenceMixin):
 
     def to_dict_with_extra_info(self, user):
         data = model_to_dict(self)
-        data.update(NodeOnlineLog.get_latest_online_log_info(self))
+        data.update(UserTrafficLog.get_latest_online_log_info(self))
         data["country"] = self.country.lower()
         data["ss_password"] = user.ss_password
         data["node_link"] = self.get_user_node_link(user)
+        data["multi_server_address"] = self.multi_server_address
 
         # NOTE ss only section
         if self.node_type == self.NODE_TYPE_SS:
@@ -223,7 +274,8 @@ class ProxyNode(BaseNodeModel, SequenceMixin):
         if self.node_type == self.NODE_TYPE_SS:
             params = {"token": settings.TOKEN}
             return settings.HOST + f"/api/proxy_configs/{self.id}/?{urlencode(params)}"
-        # TODO vless/trojan
+        if self.node_type == self.NODE_TYPE_RAY:
+            return settings.HOST + f"/api/proxy_configs/{self.id}/?{urlencode(params)}"
         return ""
 
     @property
@@ -240,7 +292,7 @@ class ProxyNode(BaseNodeModel, SequenceMixin):
 
     @cached_property
     def online_info(self):
-        return NodeOnlineLog.get_latest_online_log_info(self.id)
+        return UserTrafficLog.get_latest_online_log_info(self)
 
     @cached_property
     def enable_relay(self):
@@ -259,6 +311,7 @@ class SSConfig(models.Model):
         primary_key=True,
         help_text="代理节点",
         verbose_name="代理节点",
+        limit_choices_to={"node_type": ProxyNode.NODE_TYPE_SS},
     )
     method = models.CharField(
         "加密类型", default=settings.DEFAULT_METHOD, max_length=32, choices=c.METHOD_CHOICES
@@ -276,7 +329,6 @@ class SSConfig(models.Model):
 
 
 class RelayNode(BaseNodeModel):
-
     CMCC = "移动"
     CUCC = "联通"
     CTCC = "电信"
@@ -339,7 +391,6 @@ class RelayNode(BaseNodeModel):
 
 
 class RelayRule(BaseModel):
-
     proxy_node = models.ForeignKey(
         ProxyNode,
         on_delete=models.CASCADE,
@@ -391,73 +442,20 @@ class RelayRule(BaseModel):
         return name
 
 
-class NodeOnlineLog(BaseLogModel):
-
-    proxy_node = models.ForeignKey(
-        ProxyNode,
-        on_delete=models.CASCADE,
-        verbose_name="代理节点",
-    )
-    online_user_count = models.IntegerField(default=0, verbose_name="用户数")
-    tcp_connections_count = models.IntegerField(default=0, verbose_name="tcp链接数")
-
-    class Meta:
-        verbose_name = "节点在线记录"
-        verbose_name_plural = "节点在线记录"
-        ordering = ["-created_at"]
-        index_together = ["proxy_node", "created_at"]
-
-    def __str__(self) -> str:
-        return f"{self.proxy_node.name}节点在线记录"
-
-    @classmethod
-    def add_log(cls, proxy_node, online_user_count, tcp_connections_count=0):
-        return cls.objects.create(
-            proxy_node=proxy_node,
-            online_user_count=online_user_count,
-            tcp_connections_count=tcp_connections_count,
-        )
-
-    @classmethod
-    def get_latest_log(cls, proxy_node):
-        return cls.objects.filter(proxy_node=proxy_node).order_by("-created_at").first()
-
-    @classmethod
-    def get_latest_online_log_info(cls, proxy_node):
-        data = {"online": False, "online_user_count": 0, "tcp_connections_count": 0}
-        log = cls.get_latest_log(proxy_node)
-        if log and log.online:
-            data["online"] = log.online
-            data.update(model_to_dict(log))
-        return data
-
-    @classmethod
-    def get_all_node_online_user_count(cls):
-        count = 0
-        for node in ProxyNode.get_active_nodes():
-            log = cls.get_latest_log(node.id)
-            if log and log.online:
-                count += log.online_user_count
-        return count
-
-    @property
-    def online(self):
-        return (
-            utils.get_current_datetime().subtract(seconds=c.NODE_TIME_OUT)
-            < self.created_at
-        )
-
-
 class UserTrafficLog(BaseLogModel):
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
+    user = models.ForeignKey(
+        User, on_delete=models.DO_NOTHING, verbose_name="用户", null=True
+    )
     proxy_node = models.ForeignKey(
         ProxyNode,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         verbose_name="代理节点",
     )
     upload_traffic = models.BigIntegerField("上传流量", default=0)
     download_traffic = models.BigIntegerField("下载流量", default=0)
+
+    tcp_conn_cnt = models.IntegerField(default=0, verbose_name="tcp链接数")
+    ip_list = models.JSONField(verbose_name="IP地址列表", default=list)
 
     class Meta:
         verbose_name = "用户流量记录"
@@ -467,6 +465,46 @@ class UserTrafficLog(BaseLogModel):
 
     def __str__(self) -> str:
         return f"用户流量记录:{self.id}"
+
+    @classmethod
+    def get_user_online_device_count(cls, user, minutes=10):
+        """获取最近一段时间内用户在线设备数量"""
+        now = utils.get_current_datetime()
+        ips = set()
+        for log in cls.objects.filter(
+            user=user, created_at__range=[now.add(minutes=minutes * -1), now]
+        ).values("ip_list"):
+            ips.update(log["ip_list"])
+        return len(ips)
+
+    @classmethod
+    def get_all_node_online_user_count(cls):
+        now = utils.get_current_datetime()
+        return (
+            cls.objects.filter(
+                created_at__range=[now.subtract(seconds=c.NODE_TIME_OUT), now]
+            )
+            .values("user")
+            .count()
+        )
+
+    @classmethod
+    def get_latest_online_log_info(cls, proxy_node):
+        data = {"online": False, "online_user_count": 0, "tcp_conn_cnt": 0}
+        now = utils.get_current_datetime()
+        query = cls.objects.filter(
+            proxy_node=proxy_node,
+            created_at__range=[now.subtract(seconds=c.NODE_TIME_OUT), now],
+        )
+        data["online"] = query.exists()
+        if data["online"]:
+            data["online_user_count"] = (
+                query.filter(user__isnull=False).values("user").distinct().count()
+            )
+            data["tcp_conn_cnt"] = query.aggregate(cnt=models.Sum("tcp_conn_cnt"))[
+                "cnt"
+            ]
+        return data
 
     @classmethod
     def calc_user_total_traffic(cls, proxy_node, user_id):
@@ -536,48 +574,33 @@ class UserTrafficLog(BaseLogModel):
         return utils.traffic_format(self.download_traffic + self.upload_traffic)
 
 
-class UserOnLineIpLog(BaseLogModel):
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
-    proxy_node = models.ForeignKey(
-        ProxyNode,
-        on_delete=models.CASCADE,
-        verbose_name="代理节点",
+class RayConfig(models.Model):
+    XRAY = "Xray"
+    V2RAY = "v2ray"
+    RAY_TOOL_CHOICES = (
+        (XRAY, XRAY),
+        (V2RAY, V2RAY),
     )
-    ip = models.CharField(max_length=128, verbose_name="IP地址")
+
+    proxy_node = models.OneToOneField(
+        to=ProxyNode,
+        related_name="ray_config",
+        on_delete=models.CASCADE,
+        primary_key=True,
+        help_text="代理节点",
+        verbose_name="代理节点",
+        limit_choices_to={"node_type": ProxyNode.NODE_TYPE_RAY},
+    )
+
+    ray_tool = models.CharField(
+        "节点类型", default=V2RAY, choices=RAY_TOOL_CHOICES, max_length=32
+    )
+
+    config = models.JSONField("配置", default=get_default_ray_config)
 
     class Meta:
-        verbose_name = "用户在线IP记录"
-        verbose_name_plural = "用户在线IP记录"
-        ordering = ["-created_at"]
-        index_together = ["user", "proxy_node", "created_at"]
+        verbose_name = "Ray配置"
+        verbose_name_plural = "Ray配置"
 
     def __str__(self) -> str:
-        return f"{self.proxy_node.name}用户在线IP记录"
-
-    @classmethod
-    def get_recent_log_by_node_id(cls, proxy_node):
-        # TODO 优化一下IP的存储方式
-        now = utils.get_current_datetime()
-        ip_set = set()
-        ret = []
-        for log in cls.objects.filter(
-            proxy_node=proxy_node,
-            created_at__range=[now.subtract(seconds=c.NODE_TIME_OUT), now],
-        ):
-            if log.ip not in ip_set:
-                ret.append(log)
-            ip_set.add(log.ip)
-        return ret
-
-    @classmethod
-    def get_user_online_device_count(cls, user, minutes=10):
-        """获取最近一段时间内用户在线设备数量"""
-        now = utils.get_current_datetime()
-        ips = {
-            data["ip"]
-            for data in cls.objects.filter(
-                user=user, created_at__range=[now.add(minutes=minutes * -1), now]
-            ).values("ip")
-        }
-        return len(ips)
+        return self.proxy_node.__str__() + "-配置"
