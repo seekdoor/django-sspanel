@@ -1,10 +1,8 @@
-from uuid import uuid4
+import uuid
 
 from django.contrib.auth.management.commands import createsuperuser
 from django.core.management import CommandError
 from django.db import transaction
-
-from apps.sspanel.models import User
 
 
 class Command(createsuperuser.Command):
@@ -40,8 +38,7 @@ class Command(createsuperuser.Command):
             "username": username,
             "password": password,
             "email": email,
-            "vmess_uuid": str(uuid4()),
-            "ss_port": User.get_not_used_port(),
+            "uid": uuid.uuid4(),
         }
 
         with transaction.atomic():

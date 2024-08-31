@@ -2,6 +2,7 @@
 tianyi: 天一是三渣的早期作品:<贩罪>的主角，是像猫一样生活的男人，并且善于计算人心/性，做出各种冷静的数据分析
 这里存一些数据分析相关的东西
 """
+
 import decimal
 from typing import List
 
@@ -35,8 +36,6 @@ class DashBoardManger:
                 "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
                 "data": [self._get_by_dt(dt).total_used_traffic for dt in dt_list],
                 "data_title": "每日流量(GB)",
-                "x_label": f"最近{len(dt_list)}天",
-                "y_label": "单位:GB",
             }
 
         def gen_doughnut_config():
@@ -68,8 +67,6 @@ class DashBoardManger:
                 "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
                 "data": active_user_count,
                 "data_title": "活跃用户",
-                "x_label": f"最近{len(dt_list)}天",
-                "y_label": "活跃用户数",
             }
             new_user_count = [self._get_by_dt(dt).new_user_count for dt in dt_list]
             new_user_line_config = {
@@ -77,8 +74,6 @@ class DashBoardManger:
                 "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
                 "data": new_user_count,
                 "data_title": "新增用户",
-                "x_label": f"最近{len(dt_list)}天",
-                "y_label": "新用户数",
             }
             return {
                 "active_user_line_config": active_user_line_config,
@@ -87,7 +82,7 @@ class DashBoardManger:
 
         def gen_doughnut_config():
             user_status = [
-                pm.NodeOnlineLog.get_all_node_online_user_count(),
+                pm.UserTrafficLog.get_all_node_online_user_count(),
                 sm.User.get_today_register_user().count(),
                 sm.UserCheckInLog.get_checkin_user_count(
                     utils.get_current_datetime().date()
@@ -114,8 +109,6 @@ class DashBoardManger:
                 "labels": [f"{date.month}-{date.day}" for date in dt_list],
                 "data": success_order_count,
                 "data_title": "每日订单数量",
-                "x_label": f"最近{len(dt_list)}天",
-                "y_label": "订单数量",
             }
 
         def gen_doughnut_config(dt_list):
@@ -157,14 +150,22 @@ class DashBoardManger:
                 "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
                 "data": amount_data,
                 "data_title": "收益",
-                "x_label": f"最近{len(dt_list)}天",
-                "y_label": "金额/元",
+            }
+
+        def get_cost_line_data(dt_list):
+            cost_data = [self._get_by_dt(dt).cost_amount for dt in dt_list]
+            return {
+                "title": f"最近{len(dt_list)}天 总成本为{sum(cost_data)}元",
+                "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
+                "data": cost_data,
+                "data_title": "成本",
             }
 
         return {
             "bar_config": gen_bar_config(self.dt_list),
             "doughnut_config": gen_doughnut_config(self.dt_list),
             "line_config": gen_line_config(self.dt_list),
+            "cost_line_config": get_cost_line_data(self.dt_list),
         }
 
     @classmethod
@@ -175,15 +176,15 @@ class DashBoardManger:
         )
         dt_list = sorted(dt_list)
         return {
-            "title": "节点 {} 当月共消耗：{}".format(proxy_node.name, user_total_traffic),
+            "title": "节点 {} 当月共消耗：{}".format(
+                proxy_node.name, user_total_traffic
+            ),
             "labels": ["{}-{}".format(t.month, t.day) for t in dt_list],
             "data": [
                 pm.UserTrafficLog.calc_traffic_by_datetime(dt, user_id, proxy_node)
                 for dt in dt_list
             ],
             "data_title": proxy_node.name,
-            "x_label": f"最近{len(dt_list)}天",
-            "y_label": "单位:GB",
         }
 
     @classmethod
@@ -199,6 +200,5 @@ class DashBoardManger:
             "labels": [f"{date.month}-{date.day}" for date in dt_list],
             "data": [logs.get(date, 0) for date in dt_list],
             "data_title": "每日邀请注册人数",
-            "x_label": f"最近{len(dt_list)}天",
             "y_label": "人",
         }

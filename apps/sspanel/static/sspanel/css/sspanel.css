@@ -6,24 +6,18 @@
     width: 100%;
 }
 
-
-/* 注册错误消息提示 */
-
 .errorlist {
-    color: red
+    color: red;
 }
 
-
 /* Navbar免js自动响应 */
-
 #nav-toggle-state {
     display: none;
 }
 
-#nav-toggle-state:checked~.nav-menu {
+#nav-toggle-state:checked ~ .nav-menu {
     display: block;
 }
-
 
 @media all and (max-width: 768px) {
     body {

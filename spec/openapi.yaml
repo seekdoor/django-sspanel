@@ -1,0 +1,400 @@
+openapi: "3.0.0"
+info:
+  title: OpenAPI of Django sspanel
+  description: ""
+  version: 0.0.1
+servers:
+  - url: http://127.0.0.1:8000/openapi/v1
+    description: Local development server
+
+components:
+  securitySchemes:
+    OpenApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    OnlineInfo:
+      type: object
+      properties:
+        online_user_count:
+          type: integer
+        online:
+          type: boolean
+    ProxyNode:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sequence:
+          type: integer
+        name:
+          type: string
+        server:
+          type: string
+        multi_user_port:
+          type: integer
+        enable:
+          type: boolean
+        node_type:
+          type: string
+        info:
+          type: string
+        level:
+          type: integer
+        country:
+          type: string
+        used_traffic:
+          type: integer
+        total_traffic:
+          type: integer
+        provider_remark:
+          type: string
+        enable_udp:
+          type: boolean
+        current_used_download_bandwidth_bytes:
+          type: integer
+        current_used_upload_bandwidth_bytes:
+          type: integer
+        download_bandwidth_bytes:
+          type: integer
+        upload_bandwidth_bytes:
+          type: integer
+        online_info:
+          $ref: "#/components/schemas/OnlineInfo"
+      required:
+        - id
+        - name
+        - server
+        - enable
+        - node_type
+        - info
+        - level
+        - country
+        - used_traffic
+        - total_traffic
+        - enlarge_scale
+        - provider_remark
+        - enable_udp
+        - current_used_download_bandwidth_bytes
+        - current_used_upload_bandwidth_bytes
+        - download_bandwidth_bytes
+        - upload_bandwidth_bytes
+        - multi_user_port
+    CommonErrorResp:
+      type: object
+      properties:
+        error_msg:
+          type: string
+          description: Error message
+      required:
+        - error_msg
+    UpdateProxyNodeReq:
+      type: object
+      properties:
+        enable:
+          type: boolean
+          description: Whether to enable or disable the ProxyNode
+        # TODO Add more properties as needed
+
+    SearchUserReq:
+      type: object
+      properties:
+        platform:
+          type: string
+          description: platform
+        platform_user_id:
+          type: string
+          description: platform user id
+      required:
+        - platform
+        - platform_user_id
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The unique identifier of the user.
+        username:
+          type: string
+          description: The username of the user.
+        balance:
+          type: number
+          format: decimal
+          description: The balance of the user.
+        level:
+          type: integer
+          format: int32
+          description: The level of the user.
+        level_expire_time:
+          type: string
+          format: date-time
+          description: The expiration time of the user's level.
+        upload_traffic:
+          type: integer
+          format: int64
+          description: The amount of upload traffic used by the user.
+        download_traffic:
+          type: integer
+          format: int64
+          description: The amount of download traffic used by the user.
+        total_traffic:
+          type: integer
+          format: int64
+          description: The total amount of traffic used by the user.
+        last_use_time:
+          type: string
+          format: date-time
+          description: The time when the user last used the service.
+    UserCheckinLog:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: The unique identifier of the user..
+        checkin_time:
+          type: string
+          format: date-time
+          description: The time when the user last used the service.
+        increased_traffic:
+          type: integer
+          format: int64
+          description: The amount of traffic increased by this checkin.
+
+security:
+  - OpenApiKeyAuth: []
+
+paths:
+  /proxy_nodes/:
+    get:
+      summary: List all ProxyNodes
+      tags:
+        - ProxyNode
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    description: URL of the next page
+                  previous:
+                    type: string
+                    description: URL of the previous page
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProxyNode"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+
+  /proxy_nodes/search/:
+    get:
+      summary: search node by ip
+      tags:
+        - ProxyNode
+      parameters:
+        - name: ip
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "1.1.1.1"
+      responses:
+        200:
+          description: Successful update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyNode"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+
+  /proxy_nodes/{node_id}/:
+    patch:
+      summary: Update a ProxyNode
+      tags:
+        - ProxyNode
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the ProxyNode to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProxyNodeReq"
+      responses:
+        200:
+          description: Successful update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyNode"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+        404:
+          description: ProxyNode not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+  /proxy_nodes/{node_id}/reset_multi_user_port/:
+    post:
+      summary: reset port for proxy node
+      tags:
+        - ProxyNode
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the ProxyNode to update
+      responses:
+        200:
+          description: Successful update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyNode"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+        404:
+          description: ProxyNode not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+
+  /users/search/:
+    post:
+      summary: search user
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchUserReq"
+      responses:
+        200:
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+
+  /users/{id}/info/:
+    get:
+      summary: Get UserInfo
+      description: Get a userInfo by ID.
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"
+  /users/{id}/checkin/:
+    post:
+      summary: Checkin
+      description: Checkin by ID.
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserCheckinLog"
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonErrorResp"

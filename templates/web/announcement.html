@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block authed %}
+    <div class="column is-12">
+        <section class="hero is-success is-smaill">
+            <div class="hero-body">
+                <div class="container">
+                    <h1 class="title">公告列表</h1>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="column is-12">
+        <div class="panel">
+            {% for record in anno %}
+                <div class="panel-block is-block">
+                    <div class="content">{{ record.body|safe }}</div>
+                    <div class="is-flex is-justify-content-flex-end mt-2">
+                        <small>{{ record.time }}</small>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="panel-block">
+                    <h2 class="subtitle">暂时还没发出公告</h2>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock authed %}

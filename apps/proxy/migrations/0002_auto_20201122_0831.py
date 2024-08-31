@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("proxy", "0001_initial"),
     ]
@@ -14,7 +13,10 @@ class Migration(migrations.Migration):
             model_name="proxynode",
             name="sequence",
             field=models.IntegerField(
-                db_index=True, default=1, help_text="处于序列中的第几位", verbose_name="顺序"
+                db_index=True,
+                default=1,
+                help_text="处于序列中的第几位",
+                verbose_name="顺序",
             ),
         ),
     ]

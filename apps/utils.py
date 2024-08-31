@@ -1,10 +1,12 @@
 import hashlib
 import json
 import random
+import re
 import time
 from functools import wraps
 
 import pendulum
+from django import forms
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils import timezone
@@ -48,19 +50,8 @@ def traffic_format(traffic):
     return str(round((traffic / 1073741824.0), 1)) + "GB"
 
 
-def reverse_traffic(str):
-    """
-    将流量字符串转换为整数类型
-    """
-    if "GB" in str:
-        num = float(str.replace("GB", "")) * 1024 * 1024 * 1024
-    elif "MB" in str:
-        num = float(str.replace("MB", "")) * 1024 * 1024
-    elif "KB" in str:
-        num = float(str.replace("KB", "")) * 1024
-    else:
-        num = num = float(str.replace("B", ""))
-    return round(num)
+def traffic_rate_format(traffic):
+    return f"{traffic_format(traffic)}/s"
 
 
 def api_authorized(view_func):
@@ -74,11 +65,15 @@ def api_authorized(view_func):
     return wrapper
 
 
-def handle_json_post(view_func):
+def handle_json_request(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kw):
-        if request.method == "POST":
+        if request.headers.get("Content-Type") != "application/json":
+            return
+        try:
             request.json = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"msg": "bad request"}, status=400)
         return view_func(request, *args, **kw)
 
     return wrapper
@@ -99,3 +94,24 @@ def get_client_ip(request):
         return x_forwarded_for.split(",")[0]
     else:
         return request.META.get("REMOTE_ADDR")
+
+
+def is_ip_address(addr):
+    ip_pattern = r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"
+    return bool(re.match(ip_pattern, addr))
+
+
+class BytesToGigabytesField(forms.CharField):
+    def prepare_value(self, value):
+        # 将字节转换为GB用于显示
+        if value is None:
+            return None
+        return value / (1024**3)
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return None
+        try:
+            return int(float(value) * (1024**3))
+        except (ValueError, TypeError):
+            raise forms.ValidationError("请输入有效的GB数值")

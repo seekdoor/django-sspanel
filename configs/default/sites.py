@@ -10,7 +10,10 @@ START_PORT = 1024
 ALLOWED_HOSTS = ["*"]
 
 # 网站域名设置（请正确填写，不然订阅功能会失效：
-HOST = os.getenv("HOST", "http://127.0.0.1:8000")
+SITE_HOST = os.getenv("SITE_HOST", "http://127.0.0.1:8000")
+CORS_ALLOWED_ORIGINS = [SITE_HOST]  # django-cors-headers
+CSRF_TRUSTED_ORIGINS = [SITE_HOST]  # django built-in
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
 # 网站密钥
 SECRET_KEY = os.getenv("SECRET_KEY", "aasdasdas")
@@ -18,8 +21,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "aasdasdas")
 # 是否开启注册
 ALLOW_REGISTER = bool(os.getenv("ALLOW_REGISTER", True))
 
-# 默认的theme
-# 可选列表在 apps/constants.py 里的THEME_CHOICES里
+HIDE_FOOTER = bool(os.getenv("HIDE_FOOTER", False))
+
+# 默认的theme 可选列表在 apps/constants.py 里的THEME_CHOICES里
 DEFAULT_THEME = os.getenv("DEFAULT_THEME", "default")
 
 
@@ -31,8 +35,11 @@ MIN_CHECKIN_TRAFFIC = int(os.getenv("MIN_CHECKIN_TRAFFIC", 10 * MB))
 MAX_CHECKIN_TRAFFIC = int(os.getenv("MAX_CHECKIN_TRAFFIC", 200 * MB))
 
 # 网站title
-TITLE = os.getenv("TITLE", "谜之屋")
-SUBTITLE = os.getenv("SUBTITLE", "秘密的小屋")
+SITE_TITLE = os.getenv("SITE_TITLE", "")
+SITE_SUBTITLE = os.getenv("SITE_SUBTITLE", "")
+SITE_SEO_KEYWORDS = os.getenv("SITE_SEO_KEYWORDS", "")
+SITE_SEO_DESCRIPTION = os.getenv("SITE_SEO_DESCRIPTION", "")
+SITE_LOGO_URL = os.getenv("SITE_LOGO_URL", "")
 
 # 用户邀请返利比例
 INVITE_PERCENT = float(os.getenv("INVITE_PERCENT", 0.2))
@@ -53,6 +60,8 @@ DEFAULT_ALPHABET = os.getenv("DEFAULT_ALPHABET", "qwertyuiopasdfghjklzxcvbnm")
 
 # FOR SIMPLE UI
 SIMPLEUI_ANALYSIS = False
+SIMPLEUI_HOME_ACTION = False
+SIMPLEUI_HOME_QUICK = True
 SIMPLEUI_HOME_INFO = bool(os.getenv("SIMPLEUI_HOME_INFO", False))
 SIMPLEUI_DEFAULT_ICON = bool(os.getenv("SIMPLEUI_DEFAULT_ICON", True))
 SIMPLEUI_ICON = {
@@ -77,4 +86,10 @@ SIMPLEUI_ICON = {
     "工单": "fas fa-tasks",
     "邮件发送记录": "fas fa-envelope",
     "用户订阅记录": "fas fa-download",
+    "开放API": "fas fa-server",
 }
+
+# TG 相关配置
+TELEGRAM_BOT_NAME = os.getenv("TELEGRAM_BOT_NAME")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_LOGIN_REDIRECT_URL = f"{SITE_HOST}/login-with-telegram/"

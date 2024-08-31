@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -38,7 +37,9 @@ class Migration(migrations.Migration):
                 (
                     "server",
                     models.CharField(
-                        help_text="支持逗号分隔传多个地址", max_length=256, verbose_name="服务器地址"
+                        help_text="支持逗号分隔传多个地址",
+                        max_length=256,
+                        verbose_name="服务器地址",
                     ),
                 ),
                 (
@@ -62,7 +63,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "info",
-                    models.CharField(blank=True, max_length=1024, verbose_name="节点说明"),
+                    models.CharField(
+                        blank=True, max_length=1024, verbose_name="节点说明"
+                    ),
                 ),
                 ("level", models.PositiveIntegerField(default=0)),
                 (
@@ -128,13 +131,19 @@ class Migration(migrations.Migration):
                 (
                     "ehco_listen_host",
                     models.CharField(
-                        blank=True, max_length=64, null=True, verbose_name="隧道监听地址"
+                        blank=True,
+                        max_length=64,
+                        null=True,
+                        verbose_name="隧道监听地址",
                     ),
                 ),
                 (
                     "ehco_listen_port",
                     models.CharField(
-                        blank=True, max_length=64, null=True, verbose_name="隧道监听端口"
+                        blank=True,
+                        max_length=64,
+                        null=True,
+                        verbose_name="隧道监听端口",
                     ),
                 ),
                 (
@@ -178,7 +187,9 @@ class Migration(migrations.Migration):
                 (
                     "server",
                     models.CharField(
-                        help_text="支持逗号分隔传多个地址", max_length=256, verbose_name="服务器地址"
+                        help_text="支持逗号分隔传多个地址",
+                        max_length=256,
+                        verbose_name="服务器地址",
                     ),
                 ),
                 (
@@ -262,7 +273,10 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("relay_port", models.CharField(max_length=64, verbose_name="中转端口")),
+                (
+                    "relay_port",
+                    models.CharField(max_length=64, verbose_name="中转端口"),
+                ),
                 (
                     "listen_type",
                     models.CharField(

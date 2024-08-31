@@ -108,7 +108,11 @@ class LoginForm(forms.Form):
         label="密码",
         error_messages={"required": "请输入密码"},
         widget=forms.PasswordInput(
-            attrs={"class": "input is-primary", "placeholder": "密码", "type": "password"}
+            attrs={
+                "class": "input is-primary",
+                "placeholder": "密码",
+                "type": "password",
+            }
         ),
     )
 
@@ -117,6 +121,59 @@ class LoginForm(forms.Form):
             raise forms.ValidationError("用户名和密码为必填项")
         else:
             self.cleaned_data = super(LoginForm, self).clean()
+
+
+class TGLoginForm(forms.Form):
+    username = forms.CharField(
+        required=True,
+        label="用户名",
+        error_messages={"required": "请输入用户名"},
+        widget=forms.TextInput(
+            attrs={"class": "input is-primary", "placeholder": "用户名"}
+        ),
+    )
+    password = forms.CharField(
+        required=True,
+        label="密码",
+        error_messages={"required": "请输入密码"},
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "input is-primary",
+                "placeholder": "密码",
+                "type": "password",
+            }
+        ),
+    )
+
+    tg_username = forms.CharField(
+        required=True,
+        label="TG 用户名",
+        widget=forms.TextInput(
+            attrs={
+                "class": "input is-primary",
+                "placeholder": "TG 用户名",
+                "readonly": "readonly",
+            }
+        ),
+    )
+
+    tg_user_id = forms.CharField(
+        required=True,
+        label="TG ID",
+        widget=forms.TextInput(
+            attrs={
+                "class": "input is-primary",
+                "placeholder": "TG ID",
+                "readonly": "readonly",
+            }
+        ),
+    )
+
+    def clean(self):
+        if not self.is_valid():
+            raise forms.ValidationError("用户名和密码为必填项")
+        else:
+            self.cleaned_data = super(TGLoginForm, self).clean()
 
 
 class GoodsForm(ModelForm):
@@ -129,22 +186,3 @@ class AnnoForm(ModelForm):
     class Meta:
         model = Announcement
         fields = "__all__"
-
-
-class UserForm(ModelForm):
-    class Meta:
-        model = User
-        fields = [
-            "balance",
-            "level",
-            "level_expire_time",
-            "ss_port",
-            "ss_password",
-        ]
-        widgets = {
-            "balance": forms.NumberInput(attrs={"class": "input"}),
-            "level": forms.NumberInput(attrs={"class": "input"}),
-            "level_expire_time": forms.DateTimeInput(attrs={"class": "input"}),
-            "ss_port": forms.NumberInput(attrs={"class": "input"}),
-            "ss_password": forms.TextInput(attrs={"class": "input"}),
-        }

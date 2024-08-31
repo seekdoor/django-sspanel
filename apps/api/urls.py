@@ -7,11 +7,25 @@ urlpatterns = [
     path("system_status/", views.SystemStatusView.as_view(), name="system_status"),
     path("user/settings/", views.UserSettingsView.as_view(), name="user_settings"),
     path("subscribe/", views.SubscribeView.as_view(), name="subscribe"),
-    path("reset_ss_port/", views.ReSetSSPortView.as_view(), name="reset_ss_port"),
-    path("gen/invitecode/", views.gen_invite_code, name="geninvitecode"),
+    path(
+        "subscribe/clash/proxy_providers/",
+        views.ClashProxyProviderView.as_view(),
+        name="proxy_providers",
+    ),
+    path(
+        "subscribe/clash/direct_domain_rule_set/",
+        views.ClashDirectDomainRuleSetView.as_view(),
+        name="direct_domain_rule_set",
+    ),
+    path(
+        "subscribe/clash/direct_ip_rule_set/",
+        views.ClashDirectIPRuleSetView.as_view(),
+        name="direct_domain_rule_set",
+    ),
     path("shop/", views.purchase, name="purchase"),
     path("change/theme/", views.change_theme, name="change_theme"),
     path("checkin/", views.UserCheckInView.as_view(), name="checkin"),
+    path("rest_sub_uid/", views.reset_sub_uid, name="rest_sub_uid"),
     # web api 接口
     path(
         "proxy_configs/<int:node_id>/",
@@ -22,11 +36,6 @@ urlpatterns = [
         "ehco_relay_config/<int:node_id>/",
         views.EhcoRelayConfigView.as_view(),
         name="ehco_relay_config",
-    ),
-    path(
-        "ehco_server_config/<int:node_id>/",
-        views.EhcoServerConfigView.as_view(),
-        name="ehco_server_config",
     ),
     # 支付
     path("orders", views.OrderView.as_view(), name="order"),

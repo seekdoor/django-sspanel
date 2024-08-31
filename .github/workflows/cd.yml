@@ -1,0 +1,37 @@
+name: build-code-image
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - debug-*
+    paths:
+      - "apps/**"
+      - "configs/**"
+      - "templates/**"
+  workflow_dispatch:
+jobs:
+  build-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: set up qemu
+        uses: docker/setup-qemu-action@v2
+
+      - name: set up docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: login to docker hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: build code image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: "ehco1996/django-sspanel:latest,ehco1996/django-sspanel:code,ehco1996/django-sspanel:${{ github.sha }}"
+          platforms: linux/amd64,linux/arm64
+          file: deploy/Dockerfile.CODE

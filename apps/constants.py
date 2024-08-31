@@ -52,6 +52,23 @@ THEME_CHOICES = (
     ("superhero", "superhero"),
 )
 
+BULMA_COLOR_EMPTY = ""
+BULMA_COLOR_PRIMARY = "is-primary"
+BULMA_COLOR_LINK = "is-link"
+BULMA_COLOR_INFO = "is-info"
+BULMA_COLOR_DANGER = "is-danger"
+BULMA_COLOR_WARNING = "is-warning"
+BULMA_COLOR_SUCCESS = "is-success"
+BULMA_COLOR_CHOICES = (
+    (BULMA_COLOR_EMPTY, "empty"),
+    (BULMA_COLOR_INFO, "is-info"),
+    (BULMA_COLOR_LINK, "is-link"),
+    (BULMA_COLOR_PRIMARY, "is-primary"),
+    (BULMA_COLOR_DANGER, "is-danger"),
+    (BULMA_COLOR_WARNING, "is-warning"),
+    (BULMA_COLOR_SUCCESS, "is-success"),
+)
+
 
 # 判断节点在线时间间隔
 NODE_TIME_OUT = 75
@@ -59,25 +76,22 @@ NODE_TIME_OUT = 75
 
 # ehco隧道相关
 LISTEN_RAW = "raw"
+LISTEN_WS = "ws"
 LISTEN_WSS = "wss"
-LISTEN_MWSS = "mwss"
 LISTEN_TYPES = (
     (LISTEN_RAW, "raw"),
+    (LISTEN_WS, "ws"),
     (LISTEN_WSS, "wss"),
-    (LISTEN_MWSS, "mwss"),
 )
 
 TRANSPORT_RAW = "raw"
+TRANSPORT_WS = "ws"
 TRANSPORT_WSS = "wss"
-TRANSPORT_MWSS = "mwss"
 TRANSPORT_TYPES = (
     (TRANSPORT_RAW, "raw"),
+    (TRANSPORT_WS, "ws"),
     (TRANSPORT_WSS, "wss"),
-    (TRANSPORT_MWSS, "mwss"),
 )
-
-WS_LISTENERS = {LISTEN_WSS, LISTEN_MWSS}
-WS_TRANSPORTS = {TRANSPORT_WSS, TRANSPORT_MWSS}
 
 
 CACHE_TTL_HOUR = 60 * 60

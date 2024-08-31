@@ -4,7 +4,6 @@ from apps.stats import models
 
 
 class DailyStatsAdmin(admin.ModelAdmin):
-
     list_display = [
         "date",
         "new_user_count",
@@ -12,9 +11,10 @@ class DailyStatsAdmin(admin.ModelAdmin):
         "checkin_user_count",
         "order_count",
         "order_amount",
+        "cost_amount",
         "total_used_traffic",
     ]
-    list_per_page = 31
+    list_per_page = 10
     list_filter = ["date"]
 
 

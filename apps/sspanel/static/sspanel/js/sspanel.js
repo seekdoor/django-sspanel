@@ -1,3 +1,5 @@
+'use strict';
+
 $(function () {
   function footerPosition() {
     $("index-footer").removeClass("fixed-bottom");
@@ -12,7 +14,6 @@ $(function () {
   $(window).resize(footerPosition);
 });
 
-'use strict';
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -140,122 +141,157 @@ var getRandomColorSets = function (num) {
   return colorData
 }
 
-
-var genChart = function (chartId, chartType, config) {
-  /**
-      charId : 元素id 定位canvas用
-      config : 配置信息 dict类型
-          congig = {
-              title: 图表名字
-              labels :data对应的label
-              data_title: data的标题
-              data: 数据
-              x_label : x轴的lable
-              y_label : y轴的lable
-          }
-  **/
-  data = {
-    labels: config.labels,
-    datasets: [{
-      label: config.data_title,
-      data: config.data,
-      backgroundColor: getRandomColorSets(config.data.length),
-      steppedLine: false,
-      fill: false,
-    }]
+var genLineChart = function (id, config_data) {
+  let chartStatus = Chart.getChart(id);
+  if (chartStatus != undefined) {
+    chartStatus.destroy();
   }
-  if (chartType == 'doughnut') {
-    options = {
-      title: {
-        display: true,
-        positon: 'top',
-        text: config.title,
-      },
-      legend: {
-        display: true,
-        position: 'bottom',
-      },
-      tooltip: {
-        enabled: false,
-      },
-      scaleOverlay: true,
-    }
-    if (config.labels.length > 3) {
-      options.legend.display = false
-    }
-  }
-  if (chartType == 'line') {
-    data.datasets[0].backgroundColor = getRandomColor()
-    data.datasets[0].borderColor = getRandomColor()
-    options = {
-      elements: {
-        point: {
-          radius: 2
-        }
+  var ctx = document.getElementById(id);
+  var myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: config_data.labels,
+      datasets: [
+        {
+          label: config_data.title,
+          data: config_data.data,
+          fill: false,
+          tension: 0.2,
+          backgroundColor: getRandomColor(),
+          borderColor: getRandomColor(),
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      hover: {
+        mode: "nearest",
+        intersect: true,
       },
       responsive: true,
-      title: {
-        display: true,
-        text: config.title,
-      },
-      hover: {
-        mode: 'nearest',
-        intersect: true
-      },
-      legend: {
-        display: true,
-      },
-      scales: {
-        xAxes: [{
-          display: true,
-          scaleLabel: {
-            display: true,
-            labelString: config.x_label,
-          }
-        }],
-        yAxes: [{
-          display: true,
-          ticks: { beginAtZero: true },
-          scaleLabel: {
-            display: true,
-            labelString: config.y_label,
-          }
-        }]
-      }
-    }
-  }
-  if (chartType == 'bar') {
-    options = {
-      title: {
-        display: true,
-        text: config.title,
-      },
-      legend: {
-        display: false,
-      },
-      scales: {
-        xAxes: [{
-          display: true,
-          scaleLabel: {
-            display: true,
-            labelString: config.x_label,
-          }
-        }],
-        yAxes: [{
-          scaleLabel: {
-            display: true,
-            labelString: config.y_label,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          // only show value
+          callbacks: {
+            label: function (context) {
+              if (context.parsed.y == 0) {
+                return " 0";
+              }
+              return " " + context.parsed.y;
+            },
           },
-          ticks: {
-            beginAtZero: true,
-            stepSize: 1,
-            suggestedMax: 7
-          }
-        }]
-      }
-    }
+        },
+      },
+    },
+  });
+  return myChart;
+};
+
+var genBarChart = function (id, config_data) {
+  let chartStatus = Chart.getChart(id);
+  if (chartStatus != undefined) {
+    chartStatus.destroy();
   }
-  var ctx = $('#' + chartId)
-  chart = new Chart(ctx, { type: chartType, data: data, options: options })
-  chart.update();
-}
+  var ctx = document.getElementById(id);
+  var myChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: config_data.labels,
+      datasets: [
+        {
+          label: config_data.title,
+          data: config_data.data,
+          backgroundColor: getRandomColor(),
+          borderColor: getRandomColor,
+          borderWidth: 2,
+          tension: 0.2,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      hover: {
+        mode: "nearest",
+        intersect: true,
+      },
+      title: {
+        display: true,
+        text: config_data.title,
+      },
+      elements: {
+        point: {
+          radius: 2,
+        },
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          // only show value
+          callbacks: {
+            label: function (context) {
+              if (context.parsed.y == 0) {
+                return " 0";
+              }
+              return " " + context.parsed.y;
+            },
+          },
+        },
+      },
+    },
+  });
+  return myChart;
+};
+
+var genLineChartWithDataList = function (id, config_data_list) {
+  let chartStatus = Chart.getChart(id);
+  if (chartStatus != undefined) {
+    chartStatus.destroy();
+  }
+
+  var datasets = [];
+  for (let i = 0; i < config_data_list.length; i++) {
+    var config_data = config_data_list[i];
+    datasets.push({
+      label: config_data.title,
+      data: config_data.data,
+      fill: false,
+      tension: 0.2,
+      backgroundColor: getRandomColor(),
+      borderColor: getRandomColor(),
+      borderWidth: 2,
+    });
+  }
+
+  var ctx = document.getElementById(id);
+  var myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: config_data.labels,
+      datasets: datasets,
+    },
+    options: {
+      hover: {
+        mode: "nearest",
+        intersect: true,
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          // only show value
+          callbacks: {
+            label: function (context) {
+              if (context.parsed.y == 0) {
+                return " 0";
+              }
+              return " " + context.parsed.y;
+            },
+          },
+        },
+      },
+    },
+  });
+  return myChart;
+};

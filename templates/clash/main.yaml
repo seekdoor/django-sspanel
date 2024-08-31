@@ -1,0 +1,198 @@
+# see https://github.com/Loyalsoldier/clash-rules
+mode: rule
+port: 7890
+socks-port: 7891
+allow-lan: true
+log-level: info
+external-controller: 0.0.0.0:9090
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies:
+      - DIRECT
+      - HK-LB
+      - JP-LB
+      - US-LB
+    use:
+      - {{ provider_name }}-all
+
+  - name: HK-LB
+    type: load-balance
+    strategy: consistent-hashing
+    filter: "香港|hk|HK"
+    use:
+      - {{ provider_name }}-all
+
+  - name: JP-LB
+    type: load-balance
+    strategy: consistent-hashing
+    filter: "日本|jp|JP"
+    use:
+      - {{ provider_name }}-all
+
+  - name: US-LB
+    type: load-balance
+    strategy: consistent-hashing
+    filter: "美国|us|US"
+    use:
+      - {{ provider_name }}-all
+
+  - name: PROXY-NATIVE-IP
+    type: select
+    use:
+      - {{ provider_name }}-native-ip
+
+  - name: Final
+    type: select
+    proxies:
+      - DIRECT
+      - PROXY
+      - PROXY-NATIVE-IP
+
+proxy-providers:
+  {{ provider_name }}-all:
+    type: http
+    url: {{ all_proxy_provider_url|safe }}
+    interval: 3600
+    path: ./providers/{{ provider_name }}-all.yaml
+    health-check:
+      enable: true
+      interval: 300
+      tolerance: 150
+      lazy: true
+      url: http://www.gstatic.com/generate_204
+  {{ provider_name }}-native-ip:
+      type: http
+      url: {{ native_ip_proxy_provider_url|safe }}
+      interval: 3600
+      path: ./providers/{{ provider_name }}-native-ip.yaml
+
+rule-providers:
+  reject:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt"
+    path: ./ruleset/reject.yaml
+    interval: 86400
+  icloud:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt"
+    path: ./ruleset/icloud.yaml
+    interval: 86400
+  apple:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt"
+    path: ./ruleset/apple.yaml
+    interval: 86400
+  proxy:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt"
+    path: ./ruleset/proxy.yaml
+    interval: 86400
+  direct:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"
+    path: ./ruleset/direct.yaml
+    interval: 86400
+  private:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/private.yaml
+    interval: 86400
+  gfw:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: ./ruleset/gfw.yaml
+    interval: 86400
+  tld-not-cn:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: ./ruleset/tld-not-cn.yaml
+    interval: 86400
+  telegramcidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/telegramcidr.yaml
+    interval: 86400
+  cncidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"
+    path: ./ruleset/cncidr.yaml
+    interval: 86400
+  lancidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"
+    path: ./ruleset/lancidr.yaml
+    interval: 86400
+  applications:
+    type: http
+    behavior: classical
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/applications.yaml
+    interval: 86400
+
+
+  # netflix https://github.com/snapei/clash-pro-rules/
+  netflix:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/snapei/clash-pro-rules@release/netflix.txt"
+    path: ./ruleset/netflix.yaml
+    interval: 86400
+  netflixcidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/snapei/clash-pro-rules@release/netflixcidr.txt"
+    path: ./ruleset/netflixcidr.yaml
+    interval: 86400
+
+  # proxy nodes
+  direct_domain_list:
+    type: http
+    behavior: domain
+    url: "{{ direct_domain_rule_set_url |safe }}"
+    path: ./ruleset/direct_domain_list.yaml
+    interval: 86400
+  direct_ip_list:
+    type: http
+    behavior: ipcidr
+    url: "{{ direct_ip_rule_set_url |safe }}"
+    path: ./ruleset/direct_ip_list.yaml
+    interval: 86400
+
+rules:
+  # OPENAI check  https://github.com/v2fly/domain-list-community/blob/master/data/openai
+  - DOMAIN,chatgpt.com,PROXY-NATIVE-IP
+  - DOMAIN,oaistatic.com,PROXY-NATIVE-IP
+  - DOMAIN,oaiusercontent.com,PROXY-NATIVE-IP
+  - DOMAIN,openai.com,PROXY-NATIVE-IP
+  - DOMAIN-KEYWORD,openai,PROXY-NATIVE-IP
+  - DOMAIN-KEYWORD,openaiapi,PROXY-NATIVE-IP
+  - RULE-SET,netflix,PROXY-NATIVE-IP
+  - RULE-SET,netflixcidr,PROXY-NATIVE-IP
+
+  - RULE-SET,reject,REJECT
+  - RULE-SET,direct_domain_list,DIRECT
+  - RULE-SET,direct_ip_list,DIRECT
+  - RULE-SET,applications,DIRECT
+  - RULE-SET,private,DIRECT
+  - RULE-SET,icloud,DIRECT
+  - RULE-SET,apple,DIRECT
+  - RULE-SET,direct,DIRECT
+  - RULE-SET,lancidr,DIRECT
+  - RULE-SET,cncidr,DIRECT
+  - RULE-SET,proxy,PROXY
+  - RULE-SET,telegramcidr,PROXY
+  - GEOIP,LAN,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,Final
